@@ -45,7 +45,7 @@ class ContadorApp:
         self.root.title("Contador")
         self.root.geometry("380x520")
         self.root.resizable(False, False)
-        self.root.configure(bg="#1E293B")
+        self.root.configure(bg="#000000")
 
         self._build_ui()
         self.actualizar_estado()
@@ -60,33 +60,33 @@ class ContadorApp:
         # Título
         lbl_titulo = tk.Label(
             self.root,
-            text="🖱️ Contador Global v1.1",
+            text="🖱️ Contador Global",
             font=("Segoe UI", 16, "bold"),
-            fg="#38BDF8",
-            bg="#1E293B"
+            fg="#FFFFFF",
+            bg="#000000"
         )
         lbl_titulo.pack(pady=(16, 2))
 
         # Indicador de vivo / auto-refresco
         self.lbl_live = tk.Label(
             self.root,
-            text="🟢 Sincronizado en tiempo real (cada 3s)",
+            text="● Sincronizado en tiempo real (cada 3s)",
             font=("Segoe UI", 8),
-            fg="#4ADE80",
-            bg="#1E293B"
+            fg="#AAAAAA",
+            bg="#000000"
         )
         self.lbl_live.pack(pady=(0, 10))
 
         # Cuadro del número de contador
-        frame_counter = tk.Frame(self.root, bg="#0F172A", bd=1, relief=tk.SOLID)
+        frame_counter = tk.Frame(self.root, bg="#111111", bd=1, relief=tk.SOLID, highlightbackground="#333333", highlightthickness=1)
         frame_counter.pack(padx=24, fill=tk.X, pady=(0, 16))
 
         self.lbl_count = tk.Label(
             frame_counter,
             text="0",
             font=("Segoe UI", 48, "bold"),
-            fg="#38BDF8",
-            bg="#0F172A"
+            fg="#FFFFFF",
+            bg="#111111"
         )
         self.lbl_count.pack(pady=(12, 0))
 
@@ -94,34 +94,34 @@ class ContadorApp:
             frame_counter,
             text="clicks registrados en total",
             font=("Segoe UI", 9),
-            fg="#CBD5E1",
-            bg="#0F172A"
+            fg="#888888",
+            bg="#111111"
         )
         self.lbl_sub_count.pack(pady=(0, 12))
 
         # Input de Nombre
-        frame_input = tk.Frame(self.root, bg="#1E293B")
+        frame_input = tk.Frame(self.root, bg="#000000")
         frame_input.pack(padx=24, fill=tk.X, pady=(0, 10))
 
         lbl_nombre = tk.Label(
             frame_input,
             text="Tu nombre:",
             font=("Segoe UI", 9, "bold"),
-            fg="#F1F5F9",
-            bg="#1E293B"
+            fg="#FFFFFF",
+            bg="#000000"
         )
         lbl_nombre.pack(anchor="w", pady=(0, 4))
 
         self.ent_nombre = tk.Entry(
             frame_input,
             font=("Segoe UI", 11),
-            bg="#0F172A",
+            bg="#111111",
             fg="#FFFFFF",
-            insertbackground="#38BDF8",
+            insertbackground="#FFFFFF",
             relief=tk.FLAT,
             highlightthickness=1,
-            highlightcolor="#38BDF8",
-            highlightbackground="#475569"
+            highlightcolor="#FFFFFF",
+            highlightbackground="#444444"
         )
         self.ent_nombre.pack(fill=tk.X, ipady=6)
         self.ent_nombre.bind("<Return>", lambda e: self.enviar_click())
@@ -131,10 +131,10 @@ class ContadorApp:
             self.root,
             text="¡PRESIÓNAME!",
             font=("Segoe UI", 11, "bold"),
-            fg="#FFFFFF",
-            bg="#0284C7",
-            activebackground="#0369A1",
-            activeforeground="#FFFFFF",
+            fg="#000000",
+            bg="#FFFFFF",
+            activebackground="#CCCCCC",
+            activeforeground="#000000",
             relief=tk.FLAT,
             cursor="hand2",
             command=self.enviar_click
@@ -146,8 +146,8 @@ class ContadorApp:
             self.root,
             text="",
             font=("Segoe UI", 9, "bold"),
-            fg="#4ADE80",
-            bg="#1E293B"
+            fg="#FFFFFF",
+            bg="#000000"
         )
         self.lbl_msg.pack(pady=(0, 8))
 
@@ -156,21 +156,22 @@ class ContadorApp:
             self.root,
             text="Últimas personas que presionaron:",
             font=("Segoe UI", 9, "bold"),
-            fg="#94A3B8",
-            bg="#1E293B"
+            fg="#888888",
+            bg="#000000"
         )
         lbl_hist.pack(anchor="w", padx=26, pady=(0, 4))
 
         self.listbox = tk.Listbox(
             self.root,
             font=("Segoe UI", 9),
-            bg="#0F172A",
-            fg="#E2E8F0",
-            selectbackground="#0284C7",
+            bg="#111111",
+            fg="#FFFFFF",
+            selectbackground="#333333",
+            selectforeground="#FFFFFF",
             relief=tk.FLAT,
             height=5,
             highlightthickness=1,
-            highlightbackground="#334155"
+            highlightbackground="#333333"
         )
         self.listbox.pack(padx=24, fill=tk.BOTH, expand=True, pady=(0, 16))
 
