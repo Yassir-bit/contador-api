@@ -1,5 +1,2 @@
-# URL del servidor API (en local o en Render)
-# Cuando subas a Render, cambias esta línea por tu link de Render:
-# https://contador-clicks.onrender.com
-http://127.0.0.1:8000
-
+# URL del servidor API en la nube (Render)
+https://contador-api-egzb.onrender.com

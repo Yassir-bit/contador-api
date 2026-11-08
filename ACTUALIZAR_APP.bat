@@ -29,3 +29,4 @@ if exist ContadorGlobal_nueva.exe (
 )
 
 exit
+
