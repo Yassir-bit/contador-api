@@ -99,3 +99,4 @@ def registrar_click(req: ClickRequest):
 @app.on_event("startup")
 def startup():
     init_db()
+
