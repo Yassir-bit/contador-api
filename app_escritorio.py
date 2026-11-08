@@ -6,6 +6,7 @@ Se conecta a la API en Render (o local) sin exponer credenciales de BD.
 import os
 import sys
 import json
+import threading
 import urllib.request
 import urllib.error
 from pathlib import Path
@@ -14,17 +15,25 @@ from tkinter import ttk, messagebox
 
 
 def get_api_url():
-    # 1. Archivo servidor.txt al lado del script o ejecutable
-    txt_path = Path(__file__).resolve().parent / "servidor.txt"
-    if txt_path.exists():
-        try:
-            line = txt_path.read_text(encoding="utf-8").strip()
-            if line and not line.startswith("#"):
-                return line.rstrip("/")
-        except Exception:
-            pass
-    # 2. Variable de entorno
-    return os.getenv("API_URL", "http://127.0.0.1:8000").rstrip("/")
+    # 1. URL fija directa por defecto a Render
+    default_url = "https://contador-api-egzb.onrender.com"
+
+    # 2. Buscar servidor.txt al lado del .exe o del script
+    candidates = [
+        Path(sys.executable).resolve().parent / "servidor.txt",
+        Path(__file__).resolve().parent / "servidor.txt",
+        Path.cwd() / "servidor.txt"
+    ]
+    for p in candidates:
+        if p.exists():
+            try:
+                line = p.read_text(encoding="utf-8").strip()
+                if line and not line.startswith("#"):
+                    return line.rstrip("/")
+            except Exception:
+                pass
+
+    return os.getenv("API_URL", default_url).rstrip("/")
 
 
 API_URL = get_api_url()
@@ -40,26 +49,33 @@ class ContadorApp:
 
         self._build_ui()
         self.actualizar_estado()
+        self._iniciar_auto_refresco()
+
+    def _iniciar_auto_refresco(self):
+        """Refresca automáticamente cada 3 segundos en segundo plano."""
+        self.actualizar_estado()
+        self.root.after(3000, self._iniciar_auto_refresco)
 
     def _build_ui(self):
         # Título
         lbl_titulo = tk.Label(
             self.root,
-            text="🖱️ Contador Global",
+            text="🖱️ Contador Global v1.1",
             font=("Segoe UI", 16, "bold"),
             fg="#38BDF8",
             bg="#1E293B"
         )
-        lbl_titulo.pack(pady=(20, 2))
+        lbl_titulo.pack(pady=(16, 2))
 
-        lbl_sub = tk.Label(
+        # Indicador de vivo / auto-refresco
+        self.lbl_live = tk.Label(
             self.root,
-            text="Presiona el botón para registrar tu turno",
-            font=("Segoe UI", 9),
-            fg="#94A3B8",
+            text="🟢 Sincronizado en tiempo real (cada 3s)",
+            font=("Segoe UI", 8),
+            fg="#4ADE80",
             bg="#1E293B"
         )
-        lbl_sub.pack(pady=(0, 16))
+        self.lbl_live.pack(pady=(0, 10))
 
         # Cuadro del número de contador
         frame_counter = tk.Frame(self.root, bg="#0F172A", bd=1, relief=tk.SOLID)
@@ -159,16 +175,23 @@ class ContadorApp:
         self.listbox.pack(padx=24, fill=tk.BOTH, expand=True, pady=(0, 16))
 
     def actualizar_estado(self):
-        try:
-            req = urllib.request.Request(f"{API_URL}/api/estado")
-            with urllib.request.urlopen(req, timeout=4) as response:
-                data = json.loads(response.read().decode("utf-8"))
-                self.lbl_count.config(text=str(data.get("total", 0)))
-                self.listbox.delete(0, tk.END)
-                for item in data.get("ultimos", []):
-                    self.listbox.insert(tk.END, f" #{item['numero_click']} - {item['nombre']}")
-        except Exception:
-            self.lbl_msg.config(text="⚠️ Servidor desconectado", fg="#F87171")
+        def _fetch():
+            try:
+                req = urllib.request.Request(f"{API_URL}/api/estado")
+                with urllib.request.urlopen(req, timeout=30) as response:
+                    data = json.loads(response.read().decode("utf-8"))
+                    self.root.after(0, lambda: self._render_estado(data))
+            except Exception:
+                self.root.after(0, lambda: self.lbl_msg.config(text="⚠️ Servidor iniciando... reintenta en breve", fg="#FBBF24"))
+
+        threading.Thread(target=_fetch, daemon=True).start()
+
+    def _render_estado(self, data):
+        self.lbl_count.config(text=str(data.get("total", 0)))
+        self.lbl_msg.config(text="")
+        self.listbox.delete(0, tk.END)
+        for item in data.get("ultimos", []):
+            self.listbox.insert(tk.END, f" #{item['numero_click']} - {item['nombre']}")
 
     def enviar_click(self):
         nombre = self.ent_nombre.get().strip()
@@ -178,29 +201,34 @@ class ContadorApp:
             return
 
         self.btn_click.config(state=tk.DISABLED, text="Enviando...")
-        self.root.update_idletasks()
+        self.lbl_msg.config(text="Conectando con la nube...", fg="#38BDF8")
 
-        try:
-            payload = json.dumps({"nombre": nombre}).encode("utf-8")
-            req = urllib.request.Request(
-                f"{API_URL}/api/click",
-                data=payload,
-                headers={"Content-Type": "application/json"},
-                method="POST"
-            )
-            with urllib.request.urlopen(req, timeout=6) as response:
-                data = json.loads(response.read().decode("utf-8"))
-                self.lbl_count.config(text=str(data.get("total", 0)))
-                self.lbl_msg.config(text=f"¡Registrado! Fuiste el #{data.get('tu_numero')}", fg="#4ADE80")
-                self.ent_nombre.delete(0, tk.END)
-                
-                self.listbox.delete(0, tk.END)
-                for item in data.get("ultimos", []):
-                    self.listbox.insert(tk.END, f" #{item['numero_click']} - {item['nombre']}")
-        except Exception as e:
-            self.lbl_msg.config(text="Error al conectar con la API", fg="#F87171")
-        finally:
-            self.btn_click.config(state=tk.NORMAL, text="¡PRESIÓNAME!")
+        def _enviar():
+            try:
+                payload = json.dumps({"nombre": nombre}).encode("utf-8")
+                req = urllib.request.Request(
+                    f"{API_URL}/api/click",
+                    data=payload,
+                    headers={"Content-Type": "application/json"},
+                    method="POST"
+                )
+                with urllib.request.urlopen(req, timeout=35) as response:
+                    data = json.loads(response.read().decode("utf-8"))
+                    self.root.after(0, lambda: self._on_click_success(data))
+            except Exception:
+                self.root.after(0, lambda: self.lbl_msg.config(text="Error al conectar con la API (reintentando)", fg="#F87171"))
+            finally:
+                self.root.after(0, lambda: self.btn_click.config(state=tk.NORMAL, text="¡PRESIÓNAME!"))
+
+        threading.Thread(target=_enviar, daemon=True).start()
+
+    def _on_click_success(self, data):
+        self.lbl_count.config(text=str(data.get("total", 0)))
+        self.lbl_msg.config(text=f"¡Registrado! Fuiste el #{data.get('tu_numero')}", fg="#4ADE80")
+        self.ent_nombre.delete(0, tk.END)
+        self.listbox.delete(0, tk.END)
+        for item in data.get("ultimos", []):
+            self.listbox.insert(tk.END, f" #{item['numero_click']} - {item['nombre']}")
 
 
 if __name__ == "__main__":

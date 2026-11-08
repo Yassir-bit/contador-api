@@ -52,6 +52,14 @@ def health():
     return {"status": "online"}
 
 
+@app.get("/api/version")
+def version():
+    return {
+        "version": "1.1",
+        "download_url": "https://raw.githubusercontent.com/Yassir-bit/contador-api/main/ContadorGlobal.exe"
+    }
+
+
 @app.get("/api/estado")
 def obtener_estado():
     conn = get_db()
